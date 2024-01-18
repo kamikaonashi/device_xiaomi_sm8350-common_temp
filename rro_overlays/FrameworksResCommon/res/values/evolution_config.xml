@@ -30,7 +30,7 @@
     <!-- Expected value from fast charging status file -->
     <string name="config_oemFastChargerStatusValue" translatable="false">1</string>
 
-    <!-- Shows the required view for Screen OFF FOD -->
+    <!-- Whether devices supports in-display fingerprint when screen is off -->
     <bool name="config_supportsScreenOffUdfps">true</bool>
 
     <!-- Whether device supports in-display fingerprint -->

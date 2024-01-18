@@ -106,28 +106,29 @@ on post-fs-data
     mkdir /data/vendor/wlan_logs 0777 root shell
     mkdir /data/vendor/nfc 0777 nfc nfc
 
+    # Create fingerprint related directory
+    mkdir /data/vendor/fpc 0770 system system
+    mkdir /mnt/vendor/persist/fpc 0770 system system
+    mkdir /data/vendor/goodix 0770 system system
+    mkdir /mnt/vendor/persist/goodix 0770 system system
+    mkdir /data/vendor/fpdump 0770 system system
+
 on early-boot
     # Enable WLAN cold boot calibration
     write /sys/devices/platform/soc/b0000000.qcom,cnss-qca6490/fs_ready 1
 
     start vendor.sensors
-    verity_update_state
 
 on boot
     chown system system /sys/class/thermal/thermal_message/sconfig
     chown system system /sys/class/thermal/thermal_message/balance_mode
     chown system system /sys/class/thermal/thermal_message/charger_temp
     chown system system /sys/devices/virtual/touch/tp_dev/double_tap
+    chown cameraserver cameraserver /sys/class/thermal/thermal_message/flash_state
 
     # Set xiaomi touch permissions
     chown system system /dev/xiaomi-touch
     chmod 0660 /dev/xiaomi-touch
-
-    # Set doze mode permissions
-    chown system system /sys/devices/platform/soc/soc:qcom,dsi-display-primary/doze_mode
-    chown system system /sys/devices/platform/soc/soc:qcom,dsi-display-primary/doze_status
-    chmod 0660 /sys/devices/platform/soc/soc:qcom,dsi-display-primary/doze_mode
-    chmod 0660 /sys/devices/platform/soc/soc:qcom,dsi-display-primary/doze_status
 
     # Set anti-flicker mode permissions
     chown system system /sys/devices/platform/soc/soc:qcom,dsi-display-primary/dimlayer_exposure
@@ -138,18 +139,37 @@ on boot
     chmod 0660 /sys/devices/platform/soc/soc:qcom,dsi-display-primary/hbm_enabled
 
     write /dev/cpuset/audio-app/cpus 1-2
+    # init the  cpuset value for the camera background,don't change the oder
+    write /dev/cpuset/camera-background/background/cpus 0-2
+    write /dev/cpuset/camera-background/cpus 0-3
 
     chown system /sys/devices/system/cpu/hyp_core_ctl/enable
     chown system /sys/devices/system/cpu/hyp_core_ctl/hcc_min_freq
 
     write /sys/block/sda/queue/wbt_lat_usec 75000
 
+    # Set fingerprint related permissions
+    chown system system /sys/devices/platform/soc/soc:qcom,dsi-display-primary/fod_hbm
+    chown system system /sys/devices/platform/soc/soc:qcom,dsi-display-primary/fod_ui
+    chown system system /sys/devices/virtual/touch/tp_dev/fod_status
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/irq
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/irq_enable
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/wakeup_enable
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/hw_reset
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/device_prepare
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/fingerdown_wait
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/vendor
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/request_vreg
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/simulate_irq
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/finger_irq
+    chown system system /sys/bus/platform/devices/soc:fingerprint_fpc/power_cfg
+
 on init && property:ro.boot.mode=charger
     mount_all /vendor/etc/charger_fstab.qcom --early
     write /sys/kernel/boot_adsp/boot 1
     wait /sys/class/power_supply/battery
 
-on charger
+on property:init.svc.vendor.charger=running
     start vendor.power_off_alarm
     setprop sys.usb.controller a600000.dwc3
     setprop sys.usb.configfs 1

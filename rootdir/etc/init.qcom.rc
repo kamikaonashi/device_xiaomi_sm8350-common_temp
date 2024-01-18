@@ -112,7 +112,7 @@ on boot
     # Allow system to modify exposure dim layer state
     chown system system /sys/devices/platform/soc/soc:qcom,dsi-display-primary/dimlayer_exposure
     chmod 0660 /sys/devices/platform/soc/soc:qcom,dsi-display-primary/dimlayer_exposure
-    
+
     # Create directory used for display
     mkdir /mnt/vendor/persist/display 0770 system graphics
 
@@ -125,6 +125,9 @@ on boot
 
     # Create persist for camera calibration data
     mkdir /mnt/vendor/persist/camera 0755 system cameraserver
+
+    # limit discard size to 128MB in order to avoid long IO latency
+    write /sys/block/sda/queue/discard_max_bytes 134217728
 
     # Enable qcrild and data services
     enable vendor.qcrild
@@ -139,9 +142,6 @@ on post-fs-data
     # Create directory used by display clients
     mkdir /data/vendor/display 0770 system graphics
 
-    # Change lm related dirs
-    mkdir /data/vendor/lm 0700 root root
-
     # Create directory used by media clients
     mkdir /data/vendor/media 0770 mediacodec media
 
@@ -153,6 +153,7 @@ on post-fs-data
 
     # Create folder for camera
     mkdir /data/vendor/camera 0770 camera camera
+    mkdir /data/vendor/camera/offlinelog 0770 cameraserver audio
 
     # Create directory for tftp
     mkdir /data/vendor/tombstones 0771 system system
@@ -291,6 +292,9 @@ service loc_launcher /system/vendor/bin/loc_launcher
     user gps
     group gps
 
+on property:persist.sys.xtra-daemon.enabled=*
+    restart loc_launcher
+
 service qcom-sh /vendor/bin/init.qcom.sh
     class late_start
     user root
@@ -304,13 +308,6 @@ service vendor.atfwd /vendor/bin/ATFWD-daemon
     class late_start
     user system
     group system radio
-
-service charger /system/bin/charger
-    class charger
-    user system
-    group system graphics input
-    capabilities SYS_BOOT
-    seclabel u:r:charger:s0
 
 service vendor.power_off_alarm /vendor/bin/power_off_alarm
     class core
@@ -326,6 +323,6 @@ service vendor.audio-hal /vendor/bin/hw/android.hardware.audio.service
     group audio camera drmrpc inet media mediadrm net_bt net_bt_admin net_bw_acct oem_2901 wakelock
     capabilities BLOCK_SUSPEND
     ioprio rt 4
-    writepid /dev/cpuset/foreground/tasks /dev/stune/foreground/tasks
+    task_profiles ProcessCapacityHigh HighPerformance
     socket audio_hw_socket seqpacket 0666 system system
     onrestart restart audioserver

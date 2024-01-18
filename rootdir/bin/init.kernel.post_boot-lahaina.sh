@@ -34,6 +34,8 @@ function configure_zram_parameters() {
 	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
 	MemTotal=${MemTotalStr:16:8}
 
+	low_ram=`getprop ro.config.low_ram`
+
 	# Zram disk - 75% for Go and < 2GB devices .
 	# For >2GB Non-Go devices, size = 50% of RAM size. Limit the size to 4GB.
 	# And enable lz4 zram compression for Go targets.
@@ -51,7 +53,9 @@ function configure_zram_parameters() {
 		let zRamSizeMB=4096
 	fi
 
-	echo lz4 > /sys/block/zram0/comp_algorithm
+	if [ "$low_ram" == "true" ]; then
+		echo lz4 > /sys/block/zram0/comp_algorithm
+	fi
 
 	if [ -f /sys/block/zram0/disksize ]; then
 		if [ -f /sys/block/zram0/use_dedup ]; then
@@ -188,9 +192,7 @@ echo 325 > /proc/sys/kernel/walt_low_latency_task_threshold
 
 # cpuset parameters
 echo 0-3 > /dev/cpuset/background/cpus
-echo 0-3 > /dev/cpuset/restricted/cpus
 echo 0-3 > /dev/cpuset/system-background/cpus
-echo 0-6 > /dev/cpuset/foreground/cpus
 
 # configure governor settings for silver cluster
 echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
@@ -341,7 +343,7 @@ do
 	    echo 50 > $qoslat/mem_latency/ratio_ceil
 	done
 done
-echo deep > /sys/power/mem_sleep
+echo s2idle > /sys/power/mem_sleep
 configure_memory_parameters
 
 # Let kernel know our image version/variant/crm_version

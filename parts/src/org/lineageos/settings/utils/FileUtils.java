@@ -19,7 +19,6 @@ package org.lineageos.settings.utils;
 import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
-
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -164,7 +163,7 @@ public final class FileUtils {
         }
         return ok;
     }
-    
+
     public static boolean getFileValueAsBoolean(String filename, boolean defValue) {
         String fileValue = readOneLine(filename);
         if(fileValue!=null){

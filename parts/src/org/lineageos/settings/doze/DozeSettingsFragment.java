@@ -27,6 +27,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.Switch;
+
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.Preference.OnPreferenceChangeListener;
@@ -40,11 +41,14 @@ import com.android.settingslib.widget.OnMainSwitchChangeListener;
 import org.lineageos.settings.R;
 import org.lineageos.settings.utils.FileUtils;
 
-public class DozeSettingsFragment extends PreferenceFragment
-        implements OnPreferenceChangeListener, OnMainSwitchChangeListener {
+public class DozeSettingsFragment extends PreferenceFragment implements OnPreferenceChangeListener,
+        OnMainSwitchChangeListener {
+
     private MainSwitchPreference mSwitchBar;
 
     private SwitchPreference mAlwaysOnDisplayPreference;
+    private SwitchPreference mHandwavePreference;
+    private SwitchPreference mPocketPreference;
     private ListPreference mDozeBrightnessPreference;
 
     private Handler mHandler = new Handler();
@@ -53,8 +57,8 @@ public class DozeSettingsFragment extends PreferenceFragment
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         addPreferencesFromResource(R.xml.doze_settings);
 
-        SharedPreferences prefs =
-                getActivity().getSharedPreferences("doze_settings", Activity.MODE_PRIVATE);
+        SharedPreferences prefs = getActivity().getSharedPreferences("doze_settings",
+                Activity.MODE_PRIVATE);
         if (savedInstanceState == null && !prefs.getBoolean("first_help_shown", false)) {
             showHelp();
         }
@@ -75,6 +79,22 @@ public class DozeSettingsFragment extends PreferenceFragment
                 dozeEnabled && DozeUtils.isAlwaysOnEnabled(getActivity()));
         mDozeBrightnessPreference.setOnPreferenceChangeListener(this);
 
+        PreferenceCategory proximitySensorCategory = (PreferenceCategory) getPreferenceScreen().
+                findPreference(DozeUtils.CATEG_PROX_SENSOR);
+
+        mHandwavePreference = (SwitchPreference) findPreference(DozeUtils.GESTURE_HAND_WAVE_KEY);
+        mHandwavePreference.setEnabled(dozeEnabled);
+        mHandwavePreference.setOnPreferenceChangeListener(this);
+
+        mPocketPreference = (SwitchPreference) findPreference(DozeUtils.GESTURE_POCKET_KEY);
+        mPocketPreference.setEnabled(dozeEnabled);
+        mPocketPreference.setOnPreferenceChangeListener(this);
+
+        // Hide proximity sensor related features if the device doesn't support them
+        if (!DozeUtils.getProxCheckBeforePulse(getActivity())) {
+            getPreferenceScreen().removePreference(proximitySensorCategory);
+        }
+
         // Hide AOD and doze brightness if not supported and set all its dependents otherwise
         if (!DozeUtils.alwaysOnDisplayAvailable(getActivity())) {
             getPreferenceScreen().removePreference(mAlwaysOnDisplayPreference);
@@ -85,6 +105,7 @@ public class DozeSettingsFragment extends PreferenceFragment
             } else {
                 DozeUtils.updateDozeBrightnessIcon(getContext(), mDozeBrightnessPreference);
             }
+            proximitySensorCategory.setDependency(DozeUtils.ALWAYS_ON_DISPLAY);
         }
     }
 
@@ -121,6 +142,9 @@ public class DozeSettingsFragment extends PreferenceFragment
         mAlwaysOnDisplayPreference.setEnabled(isChecked);
         mDozeBrightnessPreference.setEnabled(
                 isChecked && DozeUtils.isAlwaysOnEnabled(getActivity()));
+
+        mHandwavePreference.setEnabled(isChecked);
+        mPocketPreference.setEnabled(isChecked);
     }
 
     public static class HelpDialogFragment extends DialogFragment {
@@ -135,8 +159,7 @@ public class DozeSettingsFragment extends PreferenceFragment
 
         @Override
         public void onCancel(DialogInterface dialog) {
-            getActivity()
-                    .getSharedPreferences("doze_settings", Activity.MODE_PRIVATE)
+            getActivity().getSharedPreferences("doze_settings", Activity.MODE_PRIVATE)
                     .edit()
                     .putBoolean("first_help_shown", true)
                     .commit();
