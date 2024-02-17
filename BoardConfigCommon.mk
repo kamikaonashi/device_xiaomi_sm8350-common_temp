@@ -52,6 +52,9 @@ TARGET_NO_BOOTLOADER := true
 # Display
 TARGET_SCREEN_DENSITY ?= 440
 
+# Dolby
+AUDIO_FEATURE_ENABLED_DS2_DOLBY_DAP := true
+
 # Dolby Vision
 SOONG_CONFIG_NAMESPACES += dolby_vision
 SOONG_CONFIG_dolby_vision += enabled
